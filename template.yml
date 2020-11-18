@@ -1,124 +1,225 @@
-# This is the SAM template that represents the architecture of your serverless application
-# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'This is a simple backend for email check service'
+Transform: 'AWS::Serverless-2016-10-31'
 
-# The AWSTemplateFormatVersion identifies the capabilities of the template
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
-AWSTemplateFormatVersion: 2010-09-09
-Description: >-
-  
-
-# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
-Transform: AWS::Serverless-2016-10-31
-
-# Shared configuration for all resources, more in
-# https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    # The PermissionsBoundary allows users to safely develop with their function's permissions constrained
-    # to their current application. All the functions and roles in this application have to include it and
-    # it has to be manually updated when you add resources to your application.
-    # More information in https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html
     PermissionsBoundary: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/${AppId}-${AWS::Region}-PermissionsBoundary'
+    Environment:
+      Variables:
+        APP_POOL_ID: us-east-2_Ftx1Jyxt5
+        APP_CLIENT_ID: 312ejpdvobaa9h2jc0ksdemijo
+        EMAIL_POOL_TABLE: !Ref EmailPool
+        PROCESS_POOL_TABLE: !Ref ProcessPool
 
 Parameters:
   AppId:
     Type: String
+    Default: 'email-check-backend'
 
-# Resources declares the AWS resources that you want to include in the stack
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
 Resources:
-  # Each Lambda function is defined by properties:
-  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-
-  # This is a Lambda function config associated with the source code: get-all-items.js
-  getAllItemsFunction:
+  # This is a Lambda function config associated with the source code: register.js
+  RegisterFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: src/handlers/get-all-items.getAllItemsHandler
-      Runtime: nodejs10.x
+      Handler: src/cognito/register.lambdaHandler
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 60
-      Description: A simple example includes a HTTP get method to get all items from a DynamoDB table.
-      Policies:
-        # Give Create/Read/Update/Delete Permissions to the SampleTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SampleTable
-      Environment:
-        Variables:
-          # Make table name accessible as environment variable from function code during execution
-          SAMPLE_TABLE: !Ref SampleTable
+      Events:
+        HttpEvent:
+          Type: Api
+          Properties:
+            Path: /auth/register
+            Method: post
+
+  # This is a Lambda function config associated with the source code: auto-confirm.js
+  AutoConfirmFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/cognito/auto-confirm.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Events:
+        HttpEvent:
+          Type: Api
+          Properties:
+            Path: /auth/auto-confirm
+            Method: post
+
+  # This is a Lambda function config associated with the source code: login.js
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/cognito/login.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Events:
+        HttpEvent:
+          Type: Api
+          Properties:
+            Path: /auth/login
+            Method: post
+  
+  # This is a Lambda function config associated with the source code: login.js
+  DetailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/cognito/detail.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Events:
+        HttpEvent:
+          Type: Api
+          Properties:
+            Path: /auth/detail
+            Method: get
+
+  # This is a Lambda function config associated with the source code: get-emails.js
+  GetEmailsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/handlers/admin/get-emails.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Description: A HTTP get method to get emails from a DynamoDB email pool table.
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /
+            Path: /admin/list
             Method: GET
-  # Each Lambda function is defined by properties:
-  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+
+  # This is a Lambda function config associated with the source code: move-email.js
+  MoveEmailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/handlers/admin/move-email.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Description: A HTTP post method to move emails from email pool to process pool.
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /admin/move
+            Method: POST
 
   # This is a Lambda function config associated with the source code: get-by-id.js
-  getByIdFunction:
+  GetByIdFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: src/handlers/get-by-id.getByIdHandler
-      Runtime: nodejs10.x
+      Handler: src/handlers/email-pool/get-by-id.lambdaHandler
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 60
-      Description: A simple example includes a HTTP get method to get one item by id from a DynamoDB table.
-      Policies:
-        # Give Create/Read/Update/Delete Permissions to the SampleTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SampleTable
-      Environment:
-        Variables:
-          # Make table name accessible as environment variable from function code during execution
-          SAMPLE_TABLE: !Ref SampleTable
+      Description: A HTTP get method to get one email by id from a DynamoDB email pool table.
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /{id}
+            Path: /email-pool/{id}
             Method: GET
-  # Each Lambda function is defined by properties:
-  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
 
-  # This is a Lambda function config associated with the source code: put-item.js
-  putItemFunction:
+  # This is a Lambda function config associated with the source code: add-emails.js
+  AddEmailsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: src/handlers/put-item.putItemHandler
-      Runtime: nodejs10.x
+      Handler: src/handlers/email-pool/add-emails.lambdaHandler
+      Runtime: nodejs12.x
       MemorySize: 128
       Timeout: 60
-      Description: A simple example includes a HTTP post method to add one item to a DynamoDB table.
-      Policies:
-        # Give Create/Read/Update/Delete Permissions to the SampleTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref SampleTable
-      Environment:
-        Variables:
-          # Make table name accessible as environment variable from function code during execution
-          SAMPLE_TABLE: !Ref SampleTable
+      Description: A HTTP post method to add emails to a DynamoDB table.
       Events:
         Api:
           Type: Api
           Properties:
-            Path: /
+            Path: /email-pool/add
             Method: POST
-  # Simple syntax to create a DynamoDB table with a single attribute primary key, more in
-  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlesssimpletable
 
-  # DynamoDB table to store item: {id: &lt;ID&gt;, name: &lt;NAME&gt;}
-  SampleTable:
-    Type: AWS::Serverless::SimpleTable
+  # This is a Lambda function config associated with the source code: process-email.js
+  ProcessEmailsFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      PrimaryKey:
-        Name: id
-        Type: String
+      CodeUri: ./
+      Handler: src/handlers/process-pool/process-email.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Description: A HTTP post method to process an email in DynamoDB table.
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /process-pool/process
+            Method: POST
+  
+  # This is a Lambda function config associated with the source code: assign-email.js
+  AssignEmailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/handlers/process-pool/assign-email.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 60
+      Description: A HTTP post method to assign an email into user in DynamoDB table.
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /process-pool/assign
+            Method: GET
+
+  # DynamoDB table to store emails
+  EmailPool:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'EmailPool'
+      AttributeDefinitions:
+        -
+          AttributeName: id
+          AttributeType: S
+      KeySchema:
+        -
+          AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+  # DynamoDB table to process email
+  ProcessPool:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'ProcessPool'
+      AttributeDefinitions:
+        -
+          AttributeName: emailId
+          AttributeType: S
+        -
+          AttributeName: createdAt
+          AttributeType: N
+      KeySchema:
+        -
+          AttributeName: emailId
+          KeyType: HASH
+        -
+          AttributeName: createdAt
+          KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2

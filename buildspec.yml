@@ -6,10 +6,10 @@ phases:
       - npm install
   pre_build:
     commands:
-      # Discover and run unit tests in the '__tests__' directory
+      # Discover and run unit tests in the 'tests' directory
       - npm run test
       # Remove all unit tests to reduce the size of the package that will be ultimately uploaded to Lambda
-      - rm -rf ./__tests__
+      - rm -rf ./tests
       # Remove all dependencies not needed for the Lambda deployment package (the packages from devDependencies in package.json)
       - npm prune --production
   build:
