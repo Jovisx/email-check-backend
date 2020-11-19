@@ -1,14 +1,13 @@
 const httpStatus = require('http-status');
 const AWS = require('aws-sdk');
 const { authorizeBearerToken } = require('../utils/auth');
+const { ALLOW_CORS } = require('../utils/cors');
 
 exports.lambdaHandler = async (event, context) => {
   let data = {};
   const response = {
     statusCode: httpStatus.OK,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    }
+    headers: ALLOW_CORS
   };
 
   const token = event.headers.Authorization;

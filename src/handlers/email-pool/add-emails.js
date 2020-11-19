@@ -3,6 +3,7 @@ const dynamodb = require('aws-sdk/clients/dynamodb');
 const { authorizeBearerToken } = require('../../utils/auth');
 const { PROCESSED_STATUS } = require('../../utils/const');
 const { v4: uuidv4 } = require('uuid');
+const { ALLOW_CORS } = require('../../utils/cors');
 
 const docClient = new dynamodb.DocumentClient();
 // Get the DynamoDB table name from environment variables
@@ -15,6 +16,7 @@ const processPoolTable = process.env.PROCESS_POOL_TABLE;
 exports.lambdaHandler = async (event) => {
   const response = {
     statusCode: httpStatus.OK,
+    headers: ALLOW_CORS,
     body: null
   };
 

@@ -33,6 +33,7 @@ Resources:
           Properties:
             Path: /auth/register
             Method: post
+            cors: true
 
   # This is a Lambda function config associated with the source code: auto-confirm.js
   AutoConfirmFunction:
@@ -49,6 +50,7 @@ Resources:
           Properties:
             Path: /auth/auto-confirm
             Method: post
+            cors: true
 
   # This is a Lambda function config associated with the source code: login.js
   LoginFunction:
@@ -65,6 +67,7 @@ Resources:
           Properties:
             Path: /auth/login
             Method: post
+            cors: true
   
   # This is a Lambda function config associated with the source code: login.js
   DetailFunction:
@@ -81,6 +84,7 @@ Resources:
           Properties:
             Path: /auth/detail
             Method: get
+            cors: true
 
   # This is a Lambda function config associated with the source code: get-emails.js
   GetEmailsFunction:
@@ -98,6 +102,7 @@ Resources:
           Properties:
             Path: /admin/list
             Method: GET
+            cors: true
 
   # This is a Lambda function config associated with the source code: move-email.js
   MoveEmailFunction:
@@ -115,6 +120,7 @@ Resources:
           Properties:
             Path: /admin/move
             Method: POST
+            cors: true
 
   # This is a Lambda function config associated with the source code: get-by-id.js
   GetByIdFunction:
@@ -132,6 +138,7 @@ Resources:
           Properties:
             Path: /email-pool/{id}
             Method: GET
+            cors: true
 
   # This is a Lambda function config associated with the source code: add-emails.js
   AddEmailsFunction:
@@ -149,6 +156,7 @@ Resources:
           Properties:
             Path: /email-pool/add
             Method: POST
+            cors: true
 
   # This is a Lambda function config associated with the source code: process-email.js
   ProcessEmailsFunction:
@@ -166,6 +174,7 @@ Resources:
           Properties:
             Path: /process-pool/process
             Method: POST
+            cors: true
   
   # This is a Lambda function config associated with the source code: assign-email.js
   AssignEmailFunction:
@@ -183,6 +192,7 @@ Resources:
           Properties:
             Path: /process-pool/assign
             Method: GET
+            cors: true
 
   # DynamoDB table to store emails
   EmailPool:

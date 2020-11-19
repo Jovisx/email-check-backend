@@ -1,13 +1,12 @@
 /* eslint-disable prefer-promise-reject-errors */
 const httpStatus = require('http-status');
 const amazonCognitoIdentity = require('amazon-cognito-identity-js');
+const { ALLOW_CORS } = require('../utils/cors');
 
 exports.lambdaHandler = async (event, context) => {
   const response = {
     statusCode: httpStatus.OK,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    }
+    headers: ALLOW_CORS
   };
 
   try {
