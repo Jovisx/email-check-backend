@@ -1,6 +1,7 @@
 /* eslint-disable prefer-promise-reject-errors */
 const httpStatus = require('http-status');
 const amazonCognitoIdentity = require('amazon-cognito-identity-js');
+const AWS = require('aws-sdk');
 const { ALLOW_CORS } = require('../utils/cors');
 
 exports.lambdaHandler = async (event, context) => {
@@ -19,6 +20,10 @@ exports.lambdaHandler = async (event, context) => {
     } else if (!body.password) {
       response.statusCode = httpStatus.BAD_REQUEST;
       response.body = JSON.stringify({ errMsg: 'Password is missing' });
+      return response;
+    } else if (!body.status) {
+      response.statusCode = httpStatus.BAD_REQUEST;
+      response.body = JSON.stringify({ errMsg: 'Status is missing' });
       return response;
     }
 
@@ -45,6 +50,17 @@ exports.lambdaHandler = async (event, context) => {
     const cognitoUser = new amazonCognitoIdentity.CognitoUser(userData);
     const data = await login(cognitoUser, authenticationDetails);
     response.body = JSON.stringify(data);
+
+    // update user status: just for test
+    const cognito = new AWS.CognitoIdentityServiceProvider({
+      apiVersion: '2016-04-18'
+    });
+    const UserAttributes = setAttributes(body);
+    const params = {
+      AccessToken: data.accessToken,
+      UserAttributes
+    };
+    await updateProfile(cognito, params);
   } catch (err) {
     response.statusCode = httpStatus.BAD_REQUEST;
     response.body = JSON.stringify({ errMsg: err.message });
@@ -70,6 +86,31 @@ const login = async (cognitoUser, authenticationDetails) => {
       },
       onFailure: function (err) {
         reject({ errMsg: err.message });
+      }
+    });
+  });
+};
+
+function setAttributes (body) {
+  const attributeList = [];
+
+  attributeList.push(
+    new amazonCognitoIdentity.CognitoUserAttribute({
+      Name: 'custom:status',
+      Value: body.status
+    })
+  );
+
+  return attributeList;
+};
+
+const updateProfile = async (cognito, params) => {
+  return new Promise((resolve, reject) => {
+    cognito.updateUserAttributes(params, function (err, data) {
+      if (err) {
+        reject({ message: err.message });
+      } else {
+        resolve({ message: 'Success' });
       }
     });
   });
