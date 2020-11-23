@@ -1,6 +1,5 @@
 const httpStatus = require('http-status');
 const dynamodb = require('aws-sdk/clients/dynamodb');
-const { authorizeBearerToken } = require('../../utils/auth');
 const { ALLOW_CORS } = require('../../utils/cors');
 
 const docClient = new dynamodb.DocumentClient();

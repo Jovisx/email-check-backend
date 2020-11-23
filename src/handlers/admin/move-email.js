@@ -37,6 +37,7 @@ exports.lambdaHandler = async (event) => {
       // add this email to process pool
       await utils.addEmailToProcessTable(emailId);
       await utils.increaseProcessCount();
+      response.body = JSON.stringify({ data: emailId });
     } else {
       response.statusCode = httpStatus.BAD_REQUEST;
       response.body = JSON.stringify({ errMsg: 'Invalid permission' });

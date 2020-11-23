@@ -43,19 +43,31 @@ const getTableData = async (tableName, offset, limit, LastEvaluatedKey) => {
     Limit: limit
   };
 
-  if (LastEvaluatedKey !== null && LastEvaluatedKey !== 'null') {
-    params.ExclusiveStartKey = {
-      id
-    } = LastEvaluatedKey;
+  if (LastEvaluatedKey !== null && LastEvaluatedKey !== 'null' && typeof LastEvaluatedKey !== 'undefined') {
+    params.ExclusiveStartKey = {};
+    if (tableName === processPoolTable) {
+      params.ExclusiveStartKey.emailId = LastEvaluatedKey;
+    } else {
+      params.ExclusiveStartKey.id = LastEvaluatedKey;
+    }
   }
-  console.log('params :>> ', params);
   const data = await docClient.scan(params).promise();
   const totalCount = await getNumberOfItem(tableName);
+  
+  let LastEvaluatedKeyId = null;
+  
+  if (typeof data.LastEvaluatedKey !== 'undefined') {
+    if (tableName === processPoolTable) {
+      LastEvaluatedKeyId = data.LastEvaluatedKey.emailId;
+    } else {
+      LastEvaluatedKeyId = data.LastEvaluatedKey.id;
+    }
+  }
 
   const result = {
-    emails: data.Items,
+    emails: formatDate(data.Items),
     offset,
-    LastEvaluatedKey: data.LastEvaluatedKey.id ? data.LastEvaluatedKey.id : null,
+    LastEvaluatedKey: LastEvaluatedKeyId,
     limit: limit,
     total: totalCount
   };
