@@ -101,7 +101,7 @@ const checkAuthAndGetUserData = async (event) => {
     })
     .promise();
     data.user = formatUserData(user);
-    
+
   return data;
 };
 
@@ -121,9 +121,75 @@ function formatUserData (data) {
   return ret;
 };
 
+const updateProfile = async (cognito, params) => {
+  return new Promise((resolve, reject) => {
+    cognito.updateUserAttributes(params, function (err, data) {
+      if (err) {
+        reject({ message: err.message });
+      } else {
+        resolve({ message: 'Success' });
+      }
+    });
+  });
+};
+
+const register = async (userPool, attributeList, body) => {
+  return new Promise((resolve, reject) => {
+    userPool.signUp(body.email, body.password, attributeList, null, function (err, result) {
+      if (err) {
+        reject(err);
+      } else {
+        const codeDeliveryDetails = result.codeDeliveryDetails;
+        const message = codeDeliveryDetails
+          ? `Verification code has been sent to your ${codeDeliveryDetails.AttributeName}: ${codeDeliveryDetails.Destination}`
+          : 'Success';
+        resolve({
+          userName: result.user.getUsername(),
+          message
+        });
+      }
+    });
+  });
+};
+
+const login = async (cognitoUser, authenticationDetails) => {
+  return new Promise((resolve, reject) => {
+    cognitoUser.authenticateUser(authenticationDetails, {
+      onSuccess: async function (result) {
+        const token = result.getAccessToken().getJwtToken();
+        const refreshToken = result.getRefreshToken().getToken();
+        const username = result.getAccessToken().payload.username;
+        const exp = result.getAccessToken().payload.exp;
+        resolve({
+          accessToken: token,
+          refreshToken,
+          username,
+          exp
+        });
+      },
+      onFailure: function (err) {
+        reject({ errMsg: err.message });
+      }
+    });
+  });
+};
+
+const signOut = async (cognito, params) => {
+  return new Promise((resolve, reject) => {
+    cognito.globalSignOut(params, function (err, data) {
+      if (err) reject({ message: err.message });
+      else resolve({ message: 'User has successfully logout.' });
+    });
+  });
+};
+
 module.exports = {
   validate,
   authorizeBearerToken,
   formatUserData,
-  checkAuthAndGetUserData
+  checkAuthAndGetUserData,
+  updateProfile,
+  register,
+  login,
+  signOut
 };

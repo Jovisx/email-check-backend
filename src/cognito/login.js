@@ -2,6 +2,7 @@
 const httpStatus = require('http-status');
 const amazonCognitoIdentity = require('amazon-cognito-identity-js');
 const AWS = require('aws-sdk');
+const auth = require('../utils/auth');
 const { ALLOW_CORS } = require('../utils/cors');
 
 exports.lambdaHandler = async (event, context) => {
@@ -48,7 +49,7 @@ exports.lambdaHandler = async (event, context) => {
     };
 
     const cognitoUser = new amazonCognitoIdentity.CognitoUser(userData);
-    const data = await login(cognitoUser, authenticationDetails);
+    const data = await auth.login(cognitoUser, authenticationDetails);
     response.body = JSON.stringify({ data });
 
     // update user status: just for test
@@ -60,35 +61,13 @@ exports.lambdaHandler = async (event, context) => {
       AccessToken: data.accessToken,
       UserAttributes
     };
-    await updateProfile(cognito, params);
+    await auth.updateProfile(cognito, params);
   } catch (err) {
     response.statusCode = httpStatus.BAD_REQUEST;
     response.body = JSON.stringify({ errMsg: err.message });
   }
 
   return response;
-};
-
-const login = async (cognitoUser, authenticationDetails) => {
-  return new Promise((resolve, reject) => {
-    cognitoUser.authenticateUser(authenticationDetails, {
-      onSuccess: async function (result) {
-        const token = result.getAccessToken().getJwtToken();
-        const refreshToken = result.getRefreshToken().getToken();
-        const username = result.getAccessToken().payload.username;
-        const exp = result.getAccessToken().payload.exp;
-        resolve({
-          accessToken: token,
-          refreshToken,
-          username,
-          exp
-        });
-      },
-      onFailure: function (err) {
-        reject({ errMsg: err.message });
-      }
-    });
-  });
 };
 
 function setAttributes (body) {
@@ -102,16 +81,4 @@ function setAttributes (body) {
   );
 
   return attributeList;
-};
-
-const updateProfile = async (cognito, params) => {
-  return new Promise((resolve, reject) => {
-    cognito.updateUserAttributes(params, function (err, data) {
-      if (err) {
-        reject({ message: err.message });
-      } else {
-        resolve({ message: 'Success' });
-      }
-    });
-  });
 };

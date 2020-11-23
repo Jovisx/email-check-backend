@@ -1,6 +1,7 @@
 const httpStatus = require('http-status');
 const amazonCognitoIdentity = require('amazon-cognito-identity-js');
 const { ALLOW_CORS } = require('../utils/cors');
+const auth = require('../utils/auth');
 
 exports.lambdaHandler = async (event, context) => {
   const response = {
@@ -28,7 +29,7 @@ exports.lambdaHandler = async (event, context) => {
 
     const userPool = new amazonCognitoIdentity.CognitoUserPool(poolData);
     const attributeList = setAttributes(body);
-    const data = await register(userPool, attributeList, body);
+    const data = await auth.register(userPool, attributeList, body);
     response.body = JSON.stringify({ data });
   } catch (err) {
     response.statusCode = httpStatus.BAD_REQUEST;
@@ -40,25 +41,6 @@ exports.lambdaHandler = async (event, context) => {
   }
 
   return response;
-};
-
-const register = async (userPool, attributeList, body) => {
-  return new Promise((resolve, reject) => {
-    userPool.signUp(body.email, body.password, attributeList, null, function (err, result) {
-      if (err) {
-        reject(err);
-      } else {
-        const codeDeliveryDetails = result.codeDeliveryDetails;
-        const message = codeDeliveryDetails
-          ? `Verification code has been sent to your ${codeDeliveryDetails.AttributeName}: ${codeDeliveryDetails.Destination}`
-          : 'Success';
-        resolve({
-          userName: result.user.getUsername(),
-          message
-        });
-      }
-    });
-  });
 };
 
 // To test, just use the status and role fields

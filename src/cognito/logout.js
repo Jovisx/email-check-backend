@@ -2,6 +2,7 @@
 const httpStatus = require('http-status');
 const amazonCognitoIdentity = require('amazon-cognito-identity-js');
 const AWS = require('aws-sdk');
+const auth = require('../utils/auth');
 const { ALLOW_CORS } = require('../utils/cors');
 
 exports.lambdaHandler = async (event, context) => {
@@ -10,37 +11,43 @@ exports.lambdaHandler = async (event, context) => {
     headers: ALLOW_CORS
   };
 
+  const body = JSON.parse(event.body);
   const token = event.headers.Authorization;
-  const authorized = await authService.authorizeBearerToken(token);
+  const authorized = await auth.authorizeBearerToken(token);
+  
   if (!authorized.payload) {
     response.statusCode = httpStatus.UNAUTHORIZED;
     return response;
   }
 
-  let data;
   try {
-    const cognitoidentityserviceprovider = new AWS.CognitoIdentityServiceProvider(
-      {
-        apiVersion: '2016-04-18'
-      }
-    );
-    const params = {
-      AccessToken: token.split(' ')[1]
-    };
-    data = await signOut(cognitoidentityserviceprovider, params);
+    const cognito = new AWS.CognitoIdentityServiceProvider({
+      apiVersion: '2016-04-18'
+    });
+
+    const AccessToken = token.split(' ')[1];
+    const UserAttributes = setAttributes(body);
+
+    await auth.updateProfile(cognito, { AccessToken, UserAttributes });
+    const data = await auth.signOut(cognito, { AccessToken });
     response.body = JSON.stringify({ data });
   } catch (err) {
     response.statusCode = httpStatus.BAD_REQUEST;
     response.body = JSON.stringify({ errMsg: err.message });
   }
+
   return response;
 };
 
-const signOut = async (cognitoidentityserviceprovider, params) => {
-  return new Promise((resolve, reject) => {
-    cognitoidentityserviceprovider.globalSignOut(params, function (err, data) {
-      if (err) reject({ message: err.message });
-      else resolve({ message: 'User has successfully logout.' });
-    });
-  });
+function setAttributes (body) {
+  const attributeList = [];
+
+  attributeList.push(
+    new amazonCognitoIdentity.CognitoUserAttribute({
+      Name: 'custom:status',
+      Value: body.status
+    })
+  );
+
+  return attributeList;
 };
