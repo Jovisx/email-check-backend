@@ -49,7 +49,7 @@ exports.lambdaHandler = async (event, context) => {
 
     const cognitoUser = new amazonCognitoIdentity.CognitoUser(userData);
     const data = await login(cognitoUser, authenticationDetails);
-    response.body = JSON.stringify(data);
+    response.body = JSON.stringify({ data });
 
     // update user status: just for test
     const cognito = new AWS.CognitoIdentityServiceProvider({

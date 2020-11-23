@@ -11,6 +11,7 @@ Globals:
         APP_CLIENT_ID: 312ejpdvobaa9h2jc0ksdemijo
         EMAIL_POOL_TABLE: !Ref EmailPool
         PROCESS_POOL_TABLE: !Ref ProcessPool
+        ITEM_COUNT_TABLE: !Ref ItemCountOfTable
   Api:
     Cors:
       AllowMethods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
@@ -31,7 +32,7 @@ Resources:
       Handler: src/cognito/register.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Events:
         HttpEvent:
           Type: Api
@@ -47,7 +48,7 @@ Resources:
       Handler: src/cognito/auto-confirm.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Events:
         HttpEvent:
           Type: Api
@@ -63,30 +64,30 @@ Resources:
       Handler: src/cognito/login.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Events:
         HttpEvent:
           Type: Api
           Properties:
             Path: /auth/login
             Method: post
-  
-  # This is a Lambda function config associated with the source code: login.js
-  DetailFunction:
+
+  # This is a Lambda function config associated with the source code: logout.js
+  LogoutFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./
-      Handler: src/cognito/detail.lambdaHandler
+      Handler: src/cognito/logout.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Events:
         HttpEvent:
           Type: Api
           Properties:
-            Path: /auth/detail
-            Method: get
-
+            Path: /auth/logout
+            Method: post            
+  
   # This is a Lambda function config associated with the source code: get-emails.js
   GetEmailsFunction:
     Type: AWS::Serverless::Function
@@ -95,13 +96,30 @@ Resources:
       Handler: src/handlers/admin/get-emails.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Description: A HTTP get method to get emails from a DynamoDB email pool table.
       Events:
         Api:
           Type: Api
           Properties:
             Path: /admin/list
+            Method: GET
+
+  # This is a Lambda function config associated with the source code: get-processes.js
+  GetProcessesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: src/handlers/admin/get-processes.lambdaHandler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 120
+      Description: A HTTP get method to get processessed emails from a DynamoDB processes pool table.
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /admin/process-list
             Method: GET
 
   # This is a Lambda function config associated with the source code: move-email.js
@@ -112,7 +130,7 @@ Resources:
       Handler: src/handlers/admin/move-email.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Description: A HTTP post method to move emails from email pool to process pool.
       Events:
         Api:
@@ -129,7 +147,7 @@ Resources:
       Handler: src/handlers/email-pool/get-by-id.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Description: A HTTP get method to get one email by id from a DynamoDB email pool table.
       Events:
         Api:
@@ -146,7 +164,7 @@ Resources:
       Handler: src/handlers/email-pool/add-emails.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Description: A HTTP post method to add emails to a DynamoDB table.
       Events:
         Api:
@@ -163,7 +181,7 @@ Resources:
       Handler: src/handlers/process-pool/process-email.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Description: A HTTP post method to process an email in DynamoDB table.
       Events:
         Api:
@@ -180,7 +198,7 @@ Resources:
       Handler: src/handlers/process-pool/assign-email.lambdaHandler
       Runtime: nodejs12.x
       MemorySize: 128
-      Timeout: 60
+      Timeout: 120
       Description: A HTTP post method to assign an email into user in DynamoDB table.
       Events:
         Api:
@@ -215,16 +233,27 @@ Resources:
         -
           AttributeName: emailId
           AttributeType: S
-        -
-          AttributeName: createdAt
-          AttributeType: N
       KeySchema:
         -
           AttributeName: emailId
           KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+
+  # DynamoDB table to save number of items of every tables
+  ItemCountOfTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: 'ItemCountOfTable'
+      AttributeDefinitions:
         -
-          AttributeName: createdAt
-          KeyType: RANGE
+          AttributeName: tableId
+          AttributeType: S
+      KeySchema:
+        -
+          AttributeName: tableId
+          KeyType: HASH
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2

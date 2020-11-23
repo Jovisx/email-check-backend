@@ -17,36 +17,25 @@ exports.lambdaHandler = async (event) => {
     body: null
   };
 
-  const token = event.headers.Authorization;
-  const authorized = await authorizeBearerToken(token);
-
-  if (!authorized.payload) {
-    response.statusCode = httpStatus.UNAUTHORIZED;
-    return response;
-  }
-
-  const { httpMethod, pathParameters } = event;
-
-  if (httpMethod !== 'GET') {
-    response.statusCode = httpStatus.BAD_REQUEST;
-    response.body = JSON.stringify(`get-by-id only accept GET method, but you tried: ${httpMethod}`);
-    return response;
-  }
-
   try {
-    // Get id from pathParameters from APIGateway because of `/{id}` at template.yml
-    const { id } = pathParameters;
+    const { statusCode } = await auth.checkAuthAndGetUserData(event);
 
+    if (statusCode) {
+      response.statusCode = statusCode;
+      return response;
+    }
+
+    const { id } = event.pathParameters;
     // Get the item from the table
     const params = {
       TableName: tableName,
       Key: { id }
     };
     const { Item } = await docClient.get(params).promise();
-    response.body = JSON.stringify(Item);
+    response.body = JSON.stringify({ data: Item });
   } catch (err) {
     response.statusCode = httpStatus.INTERNAL_SERVER_ERROR;
-    response.body = JSON.stringify(err.message);
+    response.body = JSON.stringify({ errMsg: err.message });
   }
 
   return response;

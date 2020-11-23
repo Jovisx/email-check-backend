@@ -1,4 +1,6 @@
 /* eslint-disable prefer-promise-reject-errors */
+const httpStatus = require('http-status');
+const AWS = require('aws-sdk');
 const axios = require('axios');
 const jwkToPem = require('jwk-to-pem');
 const jwt = require('jsonwebtoken');
@@ -75,10 +77,38 @@ const verifyToken = async (token) => {
   });
 };
 
+const checkAuthAndGetUserData = async (event) => {
+  let data = {
+    statusCode: null,
+    user: null
+  };
+  const token = event.headers.Authorization;
+  const authorized = await authorizeBearerToken(token);
+
+  if (!authorized.payload) {
+    data.statusCode = httpStatus.UNAUTHORIZED;
+    return data;
+  }
+
+  const cognito = new AWS.CognitoIdentityServiceProvider({
+    apiVersion: '2016-04-18'
+  });
+
+  const user = await cognito
+    .adminGetUser({
+      UserPoolId: process.env.APP_POOL_ID,
+      Username: authorized.payload.sub
+    })
+    .promise();
+    data.user = formatUserData(user);
+    
+  return data;
+};
+
 function formatUserData (data) {
   const ret = {};
   const fields = {
-    email: 'email',
+    email: 'id',
     'custom:status': 'status',
     'custom:role': 'role'
   };
@@ -94,5 +124,6 @@ function formatUserData (data) {
 module.exports = {
   validate,
   authorizeBearerToken,
-  formatUserData
+  formatUserData,
+  checkAuthAndGetUserData
 };

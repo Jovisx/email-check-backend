@@ -29,7 +29,7 @@ exports.lambdaHandler = async (event, context) => {
     const userPool = new amazonCognitoIdentity.CognitoUserPool(poolData);
     const attributeList = setAttributes(body);
     const data = await register(userPool, attributeList, body);
-    response.body = JSON.stringify(data);
+    response.body = JSON.stringify({ data });
   } catch (err) {
     response.statusCode = httpStatus.BAD_REQUEST;
     if (err.code === 'InvalidPasswordException' || err.code === 'InvalidParameterException') {

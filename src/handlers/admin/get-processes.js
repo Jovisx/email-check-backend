@@ -4,7 +4,7 @@ const utils = require('../../utils/utils');
 const { ALLOW_CORS } = require('../../utils/cors');
 const { USER_ROLE } = require('../../utils/const');
 
-const tableName = process.env.EMAIL_POOL_TABLE;
+const tableName = process.env.PROCESS_POOL_TABLE;
 
 /**
  * A HTTP get method to get all emails from a DynamoDB table.
